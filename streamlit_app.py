@@ -118,15 +118,42 @@ if not effective_agents:
     st.stop()
 
 # ----------------------------------------------------------------------
-# SYNTHETIC (OR LIVE) DATA GENERATION — cached & seeded for consistency
+# DATA LAYER
+# Both the live backend and the synthetic fallback produce the SAME
+# "raw event" shape: one row per (timestamp, agent, latency_ms, csat_score).
+# Everything downstream (heatmap, trends, KPIs) is built from that single
+# shape via events_to_structures(), so live vs. synthetic is a pure
+# data-source swap with zero duplicated aggregation logic.
 # ----------------------------------------------------------------------
-@st.cache_data
-def generate_telemetry(n_days: int, agents: list, seed: int = 42):
-    rng = np.random.default_rng(seed)
-    hours = list(range(24))
-    dates = [datetime.now().date() - timedelta(days=n_days - 1 - i) for i in range(n_days)]
+TELEMETRY_EVENTS_URL = API_URL.replace("/api/health", "/api/telemetry/events")
 
-    # Base traffic curve: business-hours bump, per agent baseline load & personality
+
+@st.cache_data(ttl=60)
+def fetch_live_events(days: int) -> pd.DataFrame | None:
+    """Pull raw events from the real backend. Returns None on any failure
+    so the caller can fall back to synthetic data without crashing."""
+    try:
+        resp = requests.get(TELEMETRY_EVENTS_URL, params={"days": days}, timeout=6)
+        resp.raise_for_status()
+        payload = resp.json()
+        events = payload.get("events", [])
+        if not events:
+            return None
+        df = pd.DataFrame(events)
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True, errors="coerce")
+        df = df.dropna(subset=["timestamp"])
+        if df.empty:
+            return None
+        return df
+    except Exception:
+        return None
+
+
+@st.cache_data
+def generate_synthetic_events(n_days: int, agents: list, seed: int = 42) -> pd.DataFrame:
+    """Simulated fallback with the same shape a real /api/telemetry/events
+    response would have: one row per interaction."""
+    rng = np.random.default_rng(seed)
     base_curve = np.array([
         6, 4, 3, 2, 2, 3, 8, 18, 32, 45, 52, 58,
         60, 55, 50, 48, 44, 38, 30, 22, 16, 12, 9, 7
@@ -135,43 +162,84 @@ def generate_telemetry(n_days: int, agents: list, seed: int = 42):
         "Intent Router": 1.6, "Tech Support": 1.2, "Billing & RMA": 0.9,
         "Product Specs": 0.7, "Escalations": 0.35, "FAQ Helper": 1.0,
     }
-    agent_latency = {  # ms, roughly reflects task complexity
+    agent_latency = {
         "Intent Router": 90, "Tech Support": 420, "Billing & RMA": 300,
         "Product Specs": 260, "Escalations": 680, "FAQ Helper": 150,
     }
-    agent_csat = {  # baseline CSAT %
+    agent_csat = {
         "Intent Router": 97.5, "Tech Support": 92.0, "Billing & RMA": 93.5,
         "Product Specs": 95.0, "Escalations": 84.0, "FAQ Helper": 96.5,
     }
-
-    records = []
-    cube = {}  # agent -> (days x hours) matrix
+    start_date = datetime.now().date() - timedelta(days=n_days - 1)
+    rows = []
     for agent in agents:
         w = agent_weight.get(agent, 1.0)
-        weekly_growth = np.linspace(0.9, 1.15, n_days)  # slight upward trend over window
-        daily_noise = rng.normal(1.0, 0.08, n_days)
-        matrix = np.zeros((n_days, 24))
+        lat_mu = agent_latency.get(agent, 300)
+        csat_mu = agent_csat.get(agent, 90)
+        weekly_growth = np.linspace(0.9, 1.15, n_days)
         for d in range(n_days):
-            lam = base_curve * w * weekly_growth[d] * max(daily_noise[d], 0.5)
-            matrix[d] = rng.poisson(lam=np.clip(lam, 0.5, None))
-        cube[agent] = matrix
+            date = start_date + timedelta(days=d)
+            daily_noise = max(rng.normal(1.0, 0.08), 0.5)
+            for h in range(24):
+                lam = max(base_curve[h] * w * weekly_growth[d] * daily_noise, 0.5)
+                n_events = rng.poisson(lam)
+                if n_events == 0:
+                    continue
+                minutes = rng.integers(0, 60, n_events)
+                for m in minutes:
+                    ts = datetime.combine(date, datetime.min.time()) + timedelta(hours=h, minutes=int(m))
+                    rows.append({
+                        "timestamp": ts,
+                        "agent": agent,
+                        "latency_ms": max(rng.normal(lat_mu, lat_mu * 0.12), 40),
+                        "csat_score": float(np.clip(rng.normal(csat_mu, 1.5), 70, 100)),
+                    })
+    df = pd.DataFrame(rows)
+    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+    return df
 
-        for d, date in enumerate(dates):
-            day_volume = matrix[d].sum()
-            lat = max(rng.normal(agent_latency[agent], agent_latency[agent] * 0.12), 40)
-            csat = np.clip(rng.normal(agent_csat[agent], 1.5), 70, 100)
-            records.append({
-                "date": date, "agent": agent, "volume": int(day_volume),
-                "avg_latency_ms": round(lat, 1), "csat_pct": round(csat, 1),
-            })
 
-    df = pd.DataFrame(records)
-    return df, cube, hours, dates
+def events_to_structures(events_df: pd.DataFrame, agents: list):
+    """Turn raw event rows into (daily_agg_df, heatmap_cube, hour_labels, date_labels)."""
+    df = events_df[events_df["agent"].isin(agents)].copy()
+    df["date"] = df["timestamp"].dt.date
+    df["hour"] = df["timestamp"].dt.hour
+    dates = sorted(df["date"].unique())
+    hours = list(range(24))
+
+    cube = {}
+    for agent in agents:
+        sub = df[df["agent"] == agent]
+        pivot = sub.pivot_table(index="date", columns="hour", values="latency_ms", aggfunc="count", fill_value=0)
+        pivot = pivot.reindex(index=dates, columns=hours, fill_value=0)
+        cube[agent] = pivot.values
+
+    daily = df.groupby(["date", "agent"]).agg(
+        volume=("latency_ms", "count"),
+        avg_latency_ms=("latency_ms", "mean"),
+        csat_pct=("csat_score", "mean"),
+    ).reset_index()
+    daily["avg_latency_ms"] = daily["avg_latency_ms"].round(1)
+    daily["csat_pct"] = daily["csat_pct"].round(1)
+    return daily, cube, hours, dates
 
 
-telemetry_df, cube, hours, dates = generate_telemetry(date_range, effective_agents)
+live_events = fetch_live_events(date_range) if live_backend else None
+using_live_data = live_events is not None
+raw_events = live_events if using_live_data else generate_synthetic_events(date_range, effective_agents)
+
+telemetry_df, cube, hours, dates = events_to_structures(raw_events, effective_agents)
 hour_labels = [f"{h:02d}:00" for h in hours]
-day_labels = [d.strftime("%b %d") for d in dates]
+day_labels = [d.strftime("%b %d") for d in dates] if dates else []
+
+if telemetry_df.empty:
+    st.warning("No telemetry rows for this selection — showing an empty state. Try widening the date range.")
+    st.stop()
+
+st.sidebar.markdown("---")
+st.sidebar.caption(
+    "📡 **Live backend data**" if using_live_data else "🧪 **Simulated data** (no /api/telemetry/events yet, or backend offline)"
+)
 
 # Aggregate heatmap across selected agents
 combined_matrix = sum(cube[a] for a in effective_agents)
@@ -334,5 +402,9 @@ with tab_data:
     st.dataframe(telemetry_df.sort_values(["date", "agent"]), use_container_width=True, height=420)
     csv = telemetry_df.to_csv(index=False).encode("utf-8")
     st.download_button("⬇️ Download filtered data as CSV", csv, "techmart_telemetry.csv", "text/csv")
-    if not live_backend:
-        st.caption("Note: this data is simulated for demo purposes since the live backend is currently unreachable.")
+    if not using_live_data:
+        st.caption(
+            "Note: this data is simulated for demo purposes. Once `/api/telemetry/events` "
+            "is deployed on the backend (see `backend_telemetry_example.py`), this dashboard "
+            "will automatically switch to live data — no code changes needed here."
+        )
