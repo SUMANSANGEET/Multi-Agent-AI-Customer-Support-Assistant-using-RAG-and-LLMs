@@ -58,7 +58,8 @@ export default function App() {
         setSystemStatus(prev => ({
           ...prev,
           apiConnected: true,
-          pingMs: latency
+          pingMs: latency,
+          mongoStatus: data.mongoStatus
         }));
       } else {
         setSystemStatus(prev => ({ ...prev, apiConnected: false }));

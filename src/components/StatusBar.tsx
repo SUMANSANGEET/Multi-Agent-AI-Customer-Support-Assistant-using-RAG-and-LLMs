@@ -16,6 +16,11 @@ export interface SystemStatusState {
   pingMs: number | null;
   lastLlmLatencyMs: number | null;
   activeAgent: string;
+  mongoStatus?: {
+    isConfigured: boolean;
+    isConnected: boolean;
+    error: string | null;
+  };
 }
 
 interface StatusBarProps {
@@ -26,8 +31,8 @@ interface StatusBarProps {
 export const StatusBar: React.FC<StatusBarProps> = ({ status, onRefreshHealth }) => {
   return (
     <footer className="bg-slate-900/95 border-t border-slate-800/80 px-4 py-2 text-xs text-slate-400 flex flex-wrap items-center justify-between gap-3 shrink-0 selection:bg-none z-20">
-      {/* LEFT: API Connection & Ping */}
-      <div className="flex items-center space-x-4">
+      {/* LEFT: API Connection, Mongo Status & Ping */}
+      <div className="flex items-center space-x-3">
         <div className="flex items-center space-x-2">
           <span className="relative flex h-2 w-2">
             {status.apiConnected ? (
@@ -60,6 +65,27 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status, onRefreshHealth })
 
         <div className="hidden sm:block text-slate-700">|</div>
 
+        {/* MongoDB Atlas Connection Status Badge */}
+        <div className="flex items-center space-x-1.5 text-slate-300 bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800/80">
+          <Database className={`w-3.5 h-3.5 ${status.mongoStatus?.isConnected ? 'text-emerald-400' : 'text-amber-400'}`} />
+          <span className="text-[11px]">MongoDB:</span>
+          {status.mongoStatus?.isConnected ? (
+            <span className="font-semibold text-emerald-400 text-[11px] flex items-center space-x-1">
+              <span>Atlas Connected</span>
+            </span>
+          ) : status.mongoStatus?.isConfigured ? (
+            <span className="text-amber-400 font-medium text-[11px]" title={status.mongoStatus.error || "Connecting..."}>
+              Connecting...
+            </span>
+          ) : (
+            <span className="text-slate-400 text-[11px]" title="Add MONGODB_URI to environment variables to enable Atlas persistence">
+              Not Configured
+            </span>
+          )}
+        </div>
+
+        <div className="hidden sm:block text-slate-700">|</div>
+
         {/* LLM Model Info */}
         <div className="hidden sm:flex items-center space-x-1.5 text-slate-400">
           <Cpu className="w-3.5 h-3.5 text-cyan-400" />
@@ -67,6 +93,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status, onRefreshHealth })
           <span className="font-mono text-cyan-300 font-medium text-[11px]">Gemini 3.6 Flash</span>
         </div>
       </div>
+
 
       {/* CENTER: Active Agent */}
       <div className="flex items-center space-x-2 bg-slate-950/80 px-3 py-1 rounded-lg border border-slate-800/80">

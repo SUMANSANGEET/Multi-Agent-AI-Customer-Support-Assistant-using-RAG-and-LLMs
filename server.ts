@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { orchestrator } from "./server/agents";
 import { ragEngine } from "./server/ragEngine";
+import { connectMongoDB, getMongoStatus, ChatLogModel, TicketModel } from "./server/db";
 import { ChatMessage, ChatSession, SupportTicket, UserProfile, SystemAnalytics, AgentType, AgentRoutingHeatmapData } from "./src/types";
 
 // In-memory data persistence
@@ -106,6 +107,9 @@ async function startServer() {
 
   const PORT = 3000;
 
+  // Attempt MongoDB Atlas connection in background
+  connectMongoDB().catch(err => console.warn("MongoDB setup alert:", err));
+
   // Initialize RAG background embeddings if key present
   ragEngine.generateGeminiEmbeddings().catch(err => console.warn(err));
 
@@ -117,8 +121,27 @@ async function startServer() {
       status: "ok",
       environment: process.env.NODE_ENV || "development",
       hasGeminiKey: !!process.env.GEMINI_API_KEY,
+      mongoStatus: getMongoStatus(),
       timestamp: new Date().toISOString()
     });
+  });
+
+  // Database Status & Logs Endpoints (MongoDB Atlas)
+  app.get("/api/db/status", (_req, res) => {
+    res.json(getMongoStatus());
+  });
+
+  app.get("/api/db/logs", async (_req, res) => {
+    try {
+      const status = getMongoStatus();
+      if (status.isConnected) {
+        const logs = await ChatLogModel.find().sort({ createdAt: -1 }).limit(50);
+        return res.json({ source: "mongodb", logs });
+      }
+      return res.json({ source: "in-memory", logs: recentLogsList });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message, fallbackLogs: recentLogsList });
+    }
   });
 
   // Auth: Login
@@ -349,21 +372,58 @@ async function startServer() {
       });
       if (recentLogsList.length > 20) recentLogsList.pop();
 
+      // Persist to MongoDB Atlas asynchronously if connected
+      const mongoState = getMongoStatus();
+      if (mongoState.isConnected) {
+        ChatLogModel.create({
+          userId: userId || "user-demo-1",
+          userRole: "customer",
+          userMessage: content,
+          agentResponse: processed.replyText,
+          routedAgent: processed.intent.primaryIntent,
+          confidence: processed.intent.confidence,
+          reasoning: processed.intent.reasoning,
+          latencyMs: processed.latencyMs,
+          sourcesUsed: (processed.retrievedChunks || []).map(r => ({
+            title: r.chunk.docTitle,
+            snippet: r.chunk.content.slice(0, 150),
+            score: r.similarityScore
+          }))
+        }).catch(err => console.warn("Failed to persist chat log to MongoDB Atlas:", err));
+      }
+
       // Create ticket if escalated
       if (processed.escalatedToHuman && processed.ticketId) {
-        ticketsStore.unshift({
+        const ticketPriority: "low" | "medium" | "high" | "urgent" =
+          processed.intent.sentiment === "angry" ? "urgent" : "high";
+
+        const ticketData: SupportTicket = {
           id: processed.ticketId,
           userId: userId || "user-demo-1",
           userName: "Alex Morgan",
           userEmail: "alex.morgan@techmart.example",
           subject: `Auto Escalation: ${content.slice(0, 45)}...`,
           category: processed.intent.primaryIntent.toUpperCase(),
-          priority: processed.intent.sentiment === "angry" ? "urgent" : "high",
+          priority: ticketPriority,
           status: "Escalated",
           summary: `Auto-escalated query (Urgency: ${processed.intent.urgency}). Sentiment: ${processed.intent.sentiment}.`,
           conversationSnippet: content,
           createdAt: new Date().toISOString()
-        });
+        };
+        ticketsStore.unshift(ticketData);
+
+        if (mongoState.isConnected) {
+          TicketModel.create({
+            ticketId: processed.ticketId,
+            customerName: "Alex Morgan",
+            customerEmail: "alex.morgan@techmart.example",
+            subject: ticketData.subject,
+            category: ticketData.category,
+            priority: ticketData.priority,
+            status: "Escalated",
+            lastMessage: content
+          }).catch(err => console.warn("Failed to persist ticket to MongoDB Atlas:", err));
+        }
       }
 
       res.json({

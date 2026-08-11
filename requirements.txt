@@ -8,4 +8,3 @@ sentence-transformers>=2.2.2
 faiss-cpu>=1.7.4
 pypdf>=3.10.0
 python-dotenv>=1.0.0
-plotly==6.3.0
