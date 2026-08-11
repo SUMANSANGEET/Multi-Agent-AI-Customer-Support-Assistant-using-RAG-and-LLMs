@@ -1,0 +1,8 @@
+{
+  "name": "Remix TechMart Multi-Agent AI Support \u0026 RAG Platform",
+  "description": "Multi-Agent AI Customer Support Assistant featuring Intent Routing, RAG Knowledge Retrieval, Agent Orchestration, and Analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

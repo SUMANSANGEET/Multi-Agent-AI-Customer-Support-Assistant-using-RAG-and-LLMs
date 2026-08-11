@@ -1,0 +1,32 @@
+[
+  {
+    "id": "q1",
+    "query": "I was charged $14.99 twice on my credit card for Pro plan.",
+    "expected_intent": "BILLING",
+    "expected_agent": "Billing & Subscriptions Agent"
+  },
+  {
+    "id": "q2",
+    "query": "My SoundBuds Ultra earbuds fail to pair and give Error E-102.",
+    "expected_intent": "TECHNICAL",
+    "expected_agent": "Technical Support Agent"
+  },
+  {
+    "id": "q3",
+    "query": "What is the battery life and SSD size on the ApexBook Pro 15?",
+    "expected_intent": "PRODUCT",
+    "expected_agent": "Product Specifications Agent"
+  },
+  {
+    "id": "q4",
+    "query": "This is totally unacceptable! I demand to speak with a manager right now!",
+    "expected_intent": "COMPLAINT",
+    "expected_agent": "Escalations & Complaints Agent"
+  },
+  {
+    "id": "q5",
+    "query": "What are your customer service hotline phone hours?",
+    "expected_intent": "FAQ",
+    "expected_agent": "General FAQ Agent"
+  }
+]
