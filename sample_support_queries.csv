@@ -1,0 +1,21 @@
+id,category,query,customer_sentiment,urgency_level,expected_agent,expected_rag_doc,expected_action
+DS-BIL-001,BILLING,I noticed an unauthorized charge of $14.99 on my Visa statement for TechMart Pro.,neutral,medium,billing_agent,KB-REFUND,Verify invoice ID and issue refund or cancel renewal
+DS-BIL-002,BILLING,Can I get an official tax invoice with my company VAT number for order #TM-90812?,neutral,low,billing_agent,KB-REFUND,Generate PDF corporate tax invoice
+DS-BIL-003,BILLING,I was charged twice for order #TM-44102. Please refund the duplicate transaction immediately.,frustrated,high,billing_agent,KB-REFUND,Initiate automated gateway chargeback refund
+DS-BIL-004,BILLING,How do I upgrade from the monthly $14.99 plan to the annual $149 discounted plan?,positive,low,billing_agent,KB-PRODUCTS,Provide annual billing upgrade link
+DS-BIL-005,BILLING,I canceled my subscription 3 days ago but received another renewal invoice today.,frustrated,high,billing_agent,KB-REFUND,Verify cancellation timestamp and reverse billing
+DS-TEC-001,TECHNICAL,My SoundBuds Ultra earbuds will not connect to Bluetooth and keep showing error code E-102.,neutral,medium,technical_agent,KB-USERMANUAL,Provide 15-second charging case hard reset steps
+DS-TEC-002,TECHNICAL,The ApexBook Pro 15 screen stays black after waking from sleep mode (Error E-401).,frustrated,high,technical_agent,KB-USERMANUAL,Guide user through 20-second power reset and BIOS v2.4 check
+DS-TEC-003,TECHNICAL,How do I sync my SmartWatch Elite ECG data with Apple Health and Google Fit?,neutral,low,technical_agent,KB-USERMANUAL,Provide third-party biometric sync instructions
+DS-TEC-004,TECHNICAL,My SmartHub Max fails during Wi-Fi setup and cannot find my 5GHz network.,neutral,medium,technical_agent,KB-INSTALLATION,Advise switching phone to 2.4GHz network for initial pairing
+DS-TEC-005,TECHNICAL,The mobile app displays 'Sync Failed Code E-305' after renewing my license.,neutral,medium,technical_agent,KB-USERMANUAL,Instruct user to tap 'Sync License' or re-login to refresh token
+DS-PRD-001,PRODUCT,"What are the exact RAM, processor, and GPU specifications of the ApexBook Pro 15?",neutral,low,product_agent,KB-PRODUCTS,Provide Intel i9 / 32GB RAM / 1TB SSD / 120Hz OLED matrix
+DS-PRD-002,PRODUCT,Are the SoundBuds Ultra waterproof for swimming or just sweat resistant?,neutral,low,product_agent,KB-PRODUCTS,Clarify IPX7 waterproof rating limits
+DS-PRD-003,PRODUCT,Does the SmartWatch Elite Gen 5 support cellular standalone calls without my phone nearby?,neutral,low,product_agent,KB-PRODUCTS,Confirm eSIM LTE connectivity specifications
+DS-PRD-004,PRODUCT,What is the difference in features between the Free Standard plan and the $14.99 Premium plan?,neutral,low,product_agent,KB-PRODUCTS,"Deliver tier comparison matrix (1TB cloud, 4K sync, priority repair)"
+DS-CMP-001,COMPLAINT,THIS IS UNACCEPTABLE! My order #TM-55102 is 10 days late and nobody answers my emails!,angry,critical,complaint_agent,KB-COMPLAINT,Auto-escalate to human supervisor ticket with 2-hour SLA
+DS-CMP-002,COMPLAINT,I received a shattered laptop screen in the mail. I demand a replacement or I am reporting to CFPB.,angry,critical,complaint_agent,KB-COMPLAINT,Issue instant advance replacement RMA and $20 store credit
+DS-CMP-003,COMPLAINT,Your tech support was rude and refused to honor my warranty on a 2-month-old watch.,frustrated,high,complaint_agent,KB-WARRANTY,Log supervisor callback ticket and initiate warranty review
+DS-FAQ-001,FAQ,What are your customer support telephone operating hours?,neutral,low,faq_agent,KB-FAQ,Quote Monday-Friday 6:00 AM - 9:00 PM EST and 24/7 AI chat
+DS-FAQ-002,FAQ,Where is the TechMart headquarters located and do you have walk-in repair centers?,neutral,low,faq_agent,KB-FAQ,"Cite 100 Innovation Way, Silicon Valley, CA address"
+DS-FAQ-003,FAQ,What is the return window for electronics and laptops?,neutral,low,faq_agent,KB-REFUND,Cite 30-day money-back guarantee with original packaging
