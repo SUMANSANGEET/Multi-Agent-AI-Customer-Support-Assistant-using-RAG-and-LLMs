@@ -4,7 +4,7 @@
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel_Production-10b981?style=for-the-badge&logo=vercel&logoColor=white)](https://multi-agent-ai-customer-support-ass-virid.vercel.app/)
 [![API Backend](https://img.shields.io/badge/Backend_API-Render_Live-4f46e5?style=for-the-badge&logo=render&logoColor=white)](https://multi-agent-ai-customer-support-bcbe.onrender.com/)
-[![Streamlit Analytics](https://img.shields.io/badge/Python_Dashboard-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://multi-agent-ai-customer-support-assistant.streamlit.app/)
+[![Streamlit Analytics](https://img.shields.io/badge/Python_Dashboard-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://multi-agent-ai-customer-support-assistant-using-rag-and-llms-v.streamlit.app/)
 [![Powered by Gemini](https://img.shields.io/badge/LLM_Engine-Google_Gemini_2.4-blue?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Database](https://img.shields.io/badge/Database-MongoDB_Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/atlas)
 [![License](https://img.shields.io/badge/License-MIT-amber.svg?style=for-the-badge)](LICENSE)
@@ -361,7 +361,7 @@ $ npx tsx scripts/e2eTest.ts
 | 🖥️ **Frontend Web App** | Vercel | [multi-agent-ai-customer-support-ass-virid.vercel.app](https://multi-agent-ai-customer-support-ass-virid.vercel.app/) |
 | ⚙️ **Backend REST API** | Render | [multi-agent-ai-customer-support-bcbe.onrender.com](https://multi-agent-ai-customer-support-bcbe.onrender.com/) |
 | 💓 **API Health Check** | Render | [/api/health](https://multi-agent-ai-customer-support-bcbe.onrender.com/api/health) |
-| 📊 **Analytics Dashboard** | Streamlit Cloud | [multi-agent-ai-customer-support-assistant.streamlit.app](https://multi-agent-ai-customer-support-assistant.streamlit.app/) |
+| 📊 **Analytics Dashboard** | Streamlit Cloud | [multi-agent-ai-customer-support-assistant.streamlit.app](https://multi-agent-ai-customer-support-assistant-using-rag-and-llms-v.streamlit.app/) |
 | 🧪 **Development Preview** | Google AI Studio | [Cloud Run Sandbox](https://ais-dev-gasxbbtsgsdqgnc224i47b-834362858355.asia-east1.run.app) |
 
 ---
